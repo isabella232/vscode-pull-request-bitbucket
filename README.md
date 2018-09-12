@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-    <img src="https://raw.githubusercontent.com/Microsoft/vscode-pull-request-bitbucket/master/resources/icons/bitbucket_logo.png" alt="logo" width="200">
+    <img src="https://raw.githubusercontent.com/atlassian/vscode-pull-request-bitbucket/bb-conversion/resources/icons/bitbucket_logo.png" alt="logo" width="200">
   <br>
  Bitbucket Pull Requests
 </h1>
