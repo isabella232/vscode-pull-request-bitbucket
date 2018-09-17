@@ -9,8 +9,8 @@ export interface IHostConfiguration {
 export const HostHelper = class {
 	public static getApiHost(host: IHostConfiguration | vscode.Uri): vscode.Uri {
 		const hostUri: vscode.Uri = host instanceof vscode.Uri ? host : vscode.Uri.parse(host.host);
-		if (hostUri.authority === 'github.com') {
-			return vscode.Uri.parse('https://api.github.com');
+		if (hostUri.authority === 'bitbucket.org') {
+			return vscode.Uri.parse('https://api.bitbucket.org');
 		} else {
 			return vscode.Uri.parse(`${hostUri.scheme}://${hostUri.authority}`);
 		}
@@ -18,10 +18,10 @@ export const HostHelper = class {
 
 	public static getApiPath(host: IHostConfiguration | vscode.Uri, path: string): string {
 		const hostUri: vscode.Uri = host instanceof vscode.Uri ? host : vscode.Uri.parse(host.host);
-		if (hostUri.authority === 'github.com') {
+		if (hostUri.authority === 'bitbucket.org') {
 			return path;
 		} else {
-			return `/api/v3${path}`;
+			return `/2.0${path}`;
 		}
 	}
 };

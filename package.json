@@ -1,19 +1,19 @@
 {
-  "name": "vscode-pull-request-github",
-  "displayName": "GitHub Pull Requests",
-  "description": "Pull Request Provider for GitHub",
-  "icon": "resources/icons/github_logo.png",
+  "name": "vscode-pull-request-bitbucket",
+  "displayName": "Bitbucket Pull Requests",
+  "description": "Pull Request Provider for Bitbucket",
+  "icon": "resources/icons/bitbucket_logo.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/vscode-pull-request-github"
+    "url": "https://github.com/atlassian/vscode-pull-request-bitbucket"
   },
   "bugs": {
-    "url": "https://github.com/Microsoft/vscode-pull-request-github/issues"
+    "url": "https://github.com/atlassian/vscode-pull-request-bitbucket/issues"
   },
   "enableProposedApi": true,
   "preview": true,
   "version": "0.1.4",
-  "publisher": "GitHub",
+  "publisher": "Bitbucket",
   "engines": {
     "vscode": "^1.27.0"
   },
@@ -30,30 +30,30 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "GitHub Pull Requests",
+      "title": "Bitbucket Pull Requests",
       "properties": {
         "telemetry.optout": {
           "type": "boolean",
-          "description": "Disable usage data and errors to be sent to a GitHub online service"
+          "description": "Disable usage data and errors to be sent to a Bitbucket online service"
         },
         "github.hosts": {
           "type": "array",
           "default": [],
-          "description": "List of host credentials. For example, \"github.hosts\": [ { \"host\": \"https://github.com\", \"token\": \"GITHUB TOKEN\" } ]",
+          "description": "List of host credentials. For example, \"bitbucket.hosts\": [ { \"host\": \"https://bitbucket.org\", \"token\": \"BITBUCKET TOKEN\" } ]",
           "items": {
             "type": "object",
             "properties": {
               "host": {
                 "type": "string",
-                "description": "The host name of the GitHub server (for eg., 'https://github.com')"
+                "description": "The host name of the Bitbucket server (for eg., 'https://bitbucket.org')"
               },
               "username": {
                 "type": "string",
-                "description": "The username to access GitHub (optional)"
+                "description": "The username to access Bitbucket (optional)"
               },
               "token": {
                 "type": "string",
-                "description": "GitHub access token with the following scopes: read:user, user:email, repo, write:discussion"
+                "description": "Bitbucket access token with the following scopes: read:user, user:email, repo, write:discussion"
               }
             }
           }
@@ -64,13 +64,13 @@
       "scm": [
         {
           "id": "pr",
-          "name": "GitHub Pull Requests",
-          "when": "config.git.enabled && github:hasGitHubRemotes && workspaceFolderCount != 0"
+          "name": "Bitbucket Pull Requests",
+          "when": "config.git.enabled && bitbucket:hasBitbucketRemotes && workspaceFolderCount != 0"
         },
         {
           "id": "prStatus",
           "name": "Changes In Pull Request",
-          "when": "config.git.enabled && github:hasGitHubRemotes && github:inReviewMode"
+          "when": "config.git.enabled && bitbucket:hasBitbucketRemotes && bitbucket:inReviewMode"
         }
       ]
     },
@@ -78,38 +78,38 @@
       {
         "command": "pr.pick",
         "title": "Checkout Pull Request",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.close",
         "title": "Close Pull Request",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
-        "command": "pr.openPullRequestInGitHub",
-        "title": "Open Pull Request in GitHub",
-        "category": "GitHub Pull Requests"
+        "command": "pr.openPullRequestInBitbucket",
+        "title": "Open Pull Request in Bitbucket",
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.refreshPullRequest",
         "title": "Refresh Pull Request",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
-        "command": "pr.openFileInGitHub",
-        "title": "Open File in GitHub",
-        "category": "GitHub Pull Requests"
+        "command": "pr.openFileInBitbucket",
+        "title": "Open File in Bitbucket",
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.openDiffView",
         "title": "Open Diff View",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.openDescription",
         "title": "View Pull Request Description",
-        "category": "GitHub Pull Requests",
-        "when": "github:inReviewMode"
+        "category": "Bitbucket Pull Requests",
+        "when": "bitbucket:inReviewMode"
       },
       {
         "command": "review.openFile",
@@ -126,7 +126,7 @@
           "dark": "resources/icons/dark/refresh.svg",
           "light": "resources/icons/light/refresh.svg"
         },
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.refreshChanges",
@@ -135,22 +135,22 @@
           "dark": "resources/icons/dark/refresh.svg",
           "light": "resources/icons/light/refresh.svg"
         },
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.deleteLocalBranch",
         "title": "Delete Local Branch",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.signin",
-        "title": "Sign in to GitHub",
-        "category": "GitHub Pull Requests"
+        "title": "Sign in to Bitbucket",
+        "category": "Bitbucket Pull Requests"
       },
       {
         "command": "pr.signinAndRefreshList",
         "title": "Sign in and Refresh",
-        "category": "GitHub Pull Requests"
+        "category": "Bitbucket Pull Requests"
       }
     ],
     "menus": {
@@ -165,14 +165,14 @@
         },
         {
           "command": "pr.close",
-          "when": "config.git.enabled && github:inReviewMode"
+          "when": "config.git.enabled && bitbucket:inReviewMode"
         },
         {
-          "command": "pr.openPullRequestInGitHub",
-          "when": "config.git.enabled && github:inReviewMode"
+          "command": "pr.openPullRequestInBitbucket",
+          "when": "config.git.enabled && bitbucket:inReviewMode"
         },
         {
-          "command": "pr.openFileInGitHub",
+          "command": "pr.openFileInBitbucket",
           "when": "false"
         },
         {
@@ -189,11 +189,11 @@
         },
         {
           "command": "pr.openDescription",
-          "when": "config.git.enabled && github:inReviewMode"
+          "when": "config.git.enabled && bitbucket:inReviewMode"
         },
         {
           "command": "pr.refreshList",
-          "when": "config.git.enabled && github:hasGitHubRemotes"
+          "when": "config.git.enabled && bitbucket:hasBitbucketRemotes"
         },
         {
           "command": "pr.refreshChanges",
@@ -201,7 +201,7 @@
         },
         {
           "command": "pr.signin",
-          "when": "config.git.enabled && github:hasGitHubRemotes"
+          "when": "config.git.enabled && bitbucket:hasBitbucketRemotes"
         },
         {
           "command": "pr.signinAndRefreshList",
@@ -232,7 +232,7 @@
           "group": "pullrequest@2"
         },
         {
-          "command": "pr.openPullRequestInGitHub",
+          "command": "pr.openPullRequestInBitbucket",
           "when": "view == pr && viewItem =~ /pullrequest|description/",
           "group": "pullrequest@3"
         },
@@ -242,7 +242,7 @@
           "group": "pullrequest@4"
         },
         {
-          "command": "pr.openFileInGitHub",
+          "command": "pr.openFileInBitbucket",
           "when": "view =~ /(pr|prStatus)/ && viewItem == filechange"
         }
       ],
@@ -286,6 +286,7 @@
     "webpack-cli": "^2.0.10"
   },
   "dependencies": {
+    "bitbucket-api-v2": "^0.6.2",
     "@octokit/rest": "^15.9.5",
     "node-emoji": "^1.8.1",
     "git-credential-node": "^1.1.0",

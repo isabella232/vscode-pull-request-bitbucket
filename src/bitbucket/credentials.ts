@@ -6,7 +6,7 @@
 import * as Octokit from '@octokit/rest';
 import * as vscode from 'vscode';
 import { IHostConfiguration, HostHelper } from '../authentication/configuration';
-import { BitbucketServer } from '../authentication/bitbucketServer';
+import { GitHubServer } from '../authentication/githubServer';
 import { Remote } from '../common/remote';
 import { VSCodeConfiguration } from '../authentication/vsConfiguration';
 import Logger from '../common/logger';
@@ -47,7 +47,7 @@ export class CredentialStore {
 		this._configuration.setHost(host);
 
 		const creds: IHostConfiguration = this._configuration;
-		const server = new BitbucketServer(host);
+		const server = new GitHubServer(host);
 		let octokit: Octokit;
 
 		if (creds.token) {
@@ -96,7 +96,7 @@ export class CredentialStore {
 
 		let retry: boolean = true;
 		let octokit: Octokit;
-		const server = new BitbucketServer(host);
+		const server = new GitHubServer(host);
 
 		while (retry) {
 			try {

@@ -3,13 +3,13 @@ import Logger from './logger';
 import { StatsStore, AppName, ISettings, IStatsDatabase, IMetrics, getYearMonthDay } from 'telemetry-github';
 import { ITelemetry } from '../github/interface';
 
-const TELEMETRY_KEY = 'vscode-pull-request-github.telemetry';
+const TELEMETRY_KEY = 'vscode-pull-request-bitbucket.telemetry';
 
 export class Telemetry implements ITelemetry {
 	private _version; string;
 	private _telemetry: StatsStore;
 	constructor(private readonly _context: vscode.ExtensionContext) {
-		this._version = vscode.extensions.getExtension('GitHub.vscode-pull-request-github').packageJSON.version;
+		this._version = vscode.extensions.getExtension('Bitbucket.vscode-pull-request-bitbucket').packageJSON.version;
 		const database = new MementoDatabase(this._context, () => this._telemetry.createReport());
 		this._telemetry = new StatsStore(AppName.VSCode, this._version,
 			() => '',
