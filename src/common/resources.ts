@@ -10,8 +10,11 @@ import { GitFileChangeNode, RemoteFileChangeNode } from '../view/treeNodes/fileC
 
 export class Resource {
 	static icons: any;
+	static templates: any;
+	static resourcePath: string;
 
 	static initialize(context: vscode.ExtensionContext) {
+		Resource.resourcePath = context.asAbsolutePath(path.join('resources'));
 		Resource.icons = {
 			light: {
 				Modified: context.asAbsolutePath(path.join('resources', 'icons', 'light', 'status-modified.svg')),
@@ -39,6 +42,10 @@ export class Resource {
 				Fold: context.asAbsolutePath(path.join('resources', 'icons', 'dark', 'fold.svg')),
 				Description: context.asAbsolutePath(path.join('resources', 'icons', 'dark', 'git-pull-request.svg'))
 			}
+		};
+
+		Resource.templates = {
+			AuthSuccess: context.asAbsolutePath(path.join('resources', 'tmpl', 'success.html'))
 		};
 	}
 

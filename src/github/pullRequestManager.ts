@@ -75,7 +75,7 @@ export class PullRequestManager implements IPullRequestManager {
 
 		let serverAuthPromises = [];
 		for (let server of uniqBy(gitHubRemotes, remote => remote.gitProtocol.normalizeUri().authority)) {
-			serverAuthPromises.push(this._credentialStore.hasOctokit(server).then(authd => {
+			serverAuthPromises.push(this._credentialStore.hasBitbukit(server).then(authd => {
 				if (!authd) {
 					this._credentialStore.loginWithConfirmation(server);
 				}
@@ -246,160 +246,180 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	async getPullRequestComments(pullRequest: IPullRequestModel): Promise<Comment[]> {
-		const { remote, octokit } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { remote, bitbukit } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		const reviewData = await octokit.pullRequests.getComments({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			per_page: 100
-		});
-		const rawComments = reviewData.data;
-		return parserCommentDiffHunk(rawComments);
+		// const reviewData = await bitbukit.pullRequests.getComments({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	per_page: 100
+		// });
+		// const rawComments = reviewData.data;
+		// return parserCommentDiffHunk(rawComments);
+
+		return null;
 	}
 
 	async getPullRequestCommits(pullRequest: IPullRequestModel): Promise<Commit[]> {
-		try {
-			const { remote, octokit } = await (pullRequest as PullRequestModel).githubRepository.ensure();
-			const commitData = await octokit.pullRequests.getCommits({
-				number: pullRequest.prNumber,
-				owner: remote.owner,
-				repo: remote.repositoryName
-			});
+		// try {
+		// 	const { remote, bitbukit } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// 	const commitData = await bitbukit.pullRequests.getCommits({
+		// 		number: pullRequest.prNumber,
+		// 		owner: remote.owner,
+		// 		repo: remote.repositoryName
+		// 	});
 
-			return commitData.data;
-		} catch (e) {
-			vscode.window.showErrorMessage(`Fetching commits failed: ${formatError(e)}`);
-			return [];
-		}
+		// 	return commitData.data;
+		// } catch (e) {
+		// 	vscode.window.showErrorMessage(`Fetching commits failed: ${formatError(e)}`);
+		// 	return [];
+		// }
+
+		return null;
 	}
 
 	async getCommitChangedFiles(pullRequest: IPullRequestModel, commit: Commit): Promise<FileChange[]> {
-		try {
-			const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
-			const fullCommit = await octokit.repos.getCommit({
-				owner: remote.owner,
-				repo: remote.repositoryName,
-				sha: commit.sha
-			});
+		// try {
+		// 	const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// 	const fullCommit = await bitbukit.repos.getCommit({
+		// 		owner: remote.owner,
+		// 		repo: remote.repositoryName,
+		// 		sha: commit.sha
+		// 	});
 
-			return fullCommit.data.files.filter(file => !!file.patch);
-		} catch (e) {
-			vscode.window.showErrorMessage(`Fetching commit file changes failed: ${formatError(e)}`);
-			return [];
-		}
+		// 	return fullCommit.data.files.filter(file => !!file.patch);
+		// } catch (e) {
+		// 	vscode.window.showErrorMessage(`Fetching commit file changes failed: ${formatError(e)}`);
+		// 	return [];
+		// }
+
+		return null;
 	}
 
 	async getReviewComments(pullRequest: IPullRequestModel, reviewId: string): Promise<Comment[]> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		const reviewData = await octokit.pullRequests.getReviewComments({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			review_id: reviewId
-		});
+		// const reviewData = await bitbukit.pullRequests.getReviewComments({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	review_id: reviewId
+		// });
 
-		const rawComments = reviewData.data;
-		return parserCommentDiffHunk(rawComments);
+		// const rawComments = reviewData.data;
+		// return parserCommentDiffHunk(rawComments);
+
+		return null;
 	}
 
 	async getTimelineEvents(pullRequest: IPullRequestModel): Promise<TimelineEvent[]> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		let ret = await octokit.issues.getEventsTimeline({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			per_page: 100
-		});
+		// let ret = await bitbukit.issues.getEventsTimeline({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	per_page: 100
+		// });
 
-		return await parseTimelineEvents(this, pullRequest, ret.data);
+		// return await parseTimelineEvents(this, pullRequest, ret.data);
+
+		return null;
 	}
 
 	async getIssueComments(pullRequest: IPullRequestModel): Promise<Comment[]> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		const promise = await octokit.issues.getComments({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			per_page: 100
-		});
+		// const promise = await bitbukit.issues.getComments({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	per_page: 100
+		// });
 
-		return promise.data;
+		// return promise.data;
+
+		return null;
 	}
 
 	async createIssueComment(pullRequest: IPullRequestModel, text: string): Promise<Comment> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		const promise = await octokit.issues.createComment({
-			body: text,
-			number: pullRequest.prNumber,
-			owner: remote.owner,
-			repo: remote.repositoryName
-		});
+		// const promise = await bitbukit.issues.createComment({
+		// 	body: text,
+		// 	number: pullRequest.prNumber,
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName
+		// });
 
-		return promise.data;
+		// return promise.data;
+
+		return null;
 	}
 
 	async createCommentReply(pullRequest: IPullRequestModel, body: string, reply_to: string): Promise<Comment> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		try {
-			let ret = await octokit.pullRequests.createCommentReply({
-				owner: remote.owner,
-				repo: remote.repositoryName,
-				number: pullRequest.prNumber,
-				body: body,
-				in_reply_to: Number(reply_to)
-			});
+		// try {
+		// 	let ret = await bitbukit.pullRequests.createCommentReply({
+		// 		owner: remote.owner,
+		// 		repo: remote.repositoryName,
+		// 		number: pullRequest.prNumber,
+		// 		body: body,
+		// 		in_reply_to: Number(reply_to)
+		// 	});
 
-			return ret.data;
-		} catch (e) {
-			if (e.code && e.code === 422) {
-				throw new Error('There is already a pending review for this pull request on GitHub. Please finish or dismiss this review to be able to leave more comments');
-			} else {
-				throw e;
-			}
-		}
+		// 	return ret.data;
+		// } catch (e) {
+		// 	if (e.code && e.code === 422) {
+		// 		throw new Error('There is already a pending review for this pull request on GitHub. Please finish or dismiss this review to be able to leave more comments');
+		// 	} else {
+		// 		throw e;
+		// 	}
+		// }
+
+		return null;
 	}
 
 	async createComment(pullRequest: IPullRequestModel, body: string, path: string, position: number): Promise<Comment> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		try {
-			let ret = await octokit.pullRequests.createComment({
-				owner: remote.owner,
-				repo: remote.repositoryName,
-				number: pullRequest.prNumber,
-				body: body,
-				commit_id: pullRequest.head.sha,
-				path: path,
-				position: position
-			});
+		// try {
+		// 	let ret = await bitbukit.pullRequests.createComment({
+		// 		owner: remote.owner,
+		// 		repo: remote.repositoryName,
+		// 		number: pullRequest.prNumber,
+		// 		body: body,
+		// 		commit_id: pullRequest.head.sha,
+		// 		path: path,
+		// 		position: position
+		// 	});
 
-			return ret.data;
-		} catch (e) {
-			if (e.code && e.code === 422) {
-				throw new Error('There is already a pending review for this pull request on GitHub. Please finish or dismiss this review to be able to leave more comments');
-			} else {
-				throw e;
-			}
-		}
+		// 	return ret.data;
+		// } catch (e) {
+		// 	if (e.code && e.code === 422) {
+		// 		throw new Error('There is already a pending review for this pull request on GitHub. Please finish or dismiss this review to be able to leave more comments');
+		// 	} else {
+		// 		throw e;
+		// 	}
+		// }
+
+		return null;
 	}
 
 	private async changePullRequestState(state: 'open' | 'closed', pullRequest: IPullRequestModel): Promise<any> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		let ret = await octokit.pullRequests.update({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			state: state
-		});
+		// let ret = await bitbukit.pullRequests.update({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	state: state
+		// });
 
-		return ret.data;
+		// return ret.data;
+
+		return null;
 	}
 
 	async closePullRequest(pullRequest: IPullRequestModel): Promise<any> {
@@ -411,17 +431,19 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	private async createReview(pullRequest: IPullRequestModel, event: ReviewEvent, message?: string): Promise<any> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		let ret = await octokit.pullRequests.createReview({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			event: event,
-			body: message,
-		});
+		// let ret = await bitbukit.pullRequests.createReview({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	event: event,
+		// 	body: message,
+		// });
 
-		return ret.data;
+		// return ret.data;
+
+		return null;
 	}
 
 	async requestChanges(pullRequest: IPullRequestModel, message?: string): Promise<any> {
@@ -441,21 +463,23 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	async getPullRequestChangedFiles(pullRequest: IPullRequestModel): Promise<FileChange[]> {
-		const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		let response = await octokit.pullRequests.getFiles({
-			owner: remote.owner,
-			repo: remote.repositoryName,
-			number: pullRequest.prNumber,
-			per_page: 100
-		});
-		let { data } = response;
+		// let response = await bitbukit.pullRequests.getFiles({
+		// 	owner: remote.owner,
+		// 	repo: remote.repositoryName,
+		// 	number: pullRequest.prNumber,
+		// 	per_page: 100
+		// });
+		// let { data } = response;
 
-		while (response.headers.link && octokit.hasNextPage(response.headers)) {
-			response = await octokit.getNextPage(response.headers);
-			data = data.concat(response.data);
-		}
-		return data;
+		// while (response.headers.link && bitbukit.hasNextPage(response.headers)) {
+		// 	response = await bitbukit.getNextPage(response.headers);
+		// 	data = data.concat(response.data);
+		// }
+		// return data;
+
+		return null;
 	}
 
 	async getPullRequestRepositoryDefaultBranch(pullRequest: IPullRequestModel): Promise<string> {
@@ -464,22 +488,24 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	async fullfillPullRequestMissingInfo(pullRequest: IPullRequestModel): Promise<void> {
-		try {
-			const { octokit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		// try {
+		// 	const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-			if (!pullRequest.base) {
-				const { data } = await octokit.pullRequests.get({
-					owner: remote.owner,
-					repo: remote.repositoryName,
-					number: pullRequest.prNumber
-				});
-				pullRequest.update(data);
-			}
+		// 	if (!pullRequest.base) {
+		// 		const { data } = await bitbukit.pullRequests.get({
+		// 			owner: remote.owner,
+		// 			repo: remote.repositoryName,
+		// 			number: pullRequest.prNumber
+		// 		});
+		// 		pullRequest.update(data);
+		// 	}
 
-			pullRequest.mergeBase = await PullRequestGitHelper.getPullRequestMergeBase(this._repository, remote, pullRequest);
-		} catch (e) {
-			vscode.window.showErrorMessage(`Fetching Pull Request merge base failed: ${formatError(e)}`);
-		}
+		// 	pullRequest.mergeBase = await PullRequestGitHelper.getPullRequestMergeBase(this._repository, remote, pullRequest);
+		// } catch (e) {
+		// 	vscode.window.showErrorMessage(`Fetching Pull Request merge base failed: ${formatError(e)}`);
+		// }
+
+		return null;
 	}
 
 	//#region Git related APIs

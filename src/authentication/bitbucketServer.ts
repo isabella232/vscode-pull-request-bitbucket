@@ -2,90 +2,117 @@ import * as vscode from 'vscode';
 import { IHostConfiguration, HostHelper } from './configuration';
 import * as https from 'https';
 import * as http from 'http';
+import * as fs from 'fs';
 import * as url from 'url';
 import * as qs from 'querystring';
 import Logger from '../common/logger';
+import * as randomstring from 'randomstring';
+import * as serveStatic from 'serve-static';
+import { Resource } from '../common/resources';
 
 const HTTP_PROTOCOL: string = 'https';
+const KEY: string = 'DQhnLnWwACPXJXW2qX';
+const SECRET: string = 'uwACseDkGP4hc7JvWHAatZZruHzYpLMH';
+
+export class Tokens {
+	access:string;
+	refresh:string;
+
+	constructor (access: string, refresh: string){
+		this.access = access
+		this.refresh = refresh
+	 }
+}
 
 class Client {
-	//private _guid?: string;
-	private _token: string | undefined;
+	private _tokens: Tokens | undefined;
 	private _srv: http.Server;
 	constructor(private host: string) { }
 
 	// TODO:  start localhost listener
-	public start(): Promise<string> {
+	public start(): Promise<Tokens> {
 		let access:string
 		let refresh:string
+		let state:string = randomstring.generate();
+		let staticResource = serveStatic(Resource.resourcePath, {'index': false});
 
 		return new Promise((resolve, reject) => {
 			try {
 				Logger.appendLine('creating BB server callback listener');
 				this._srv = http.createServer((request,response) => {
 					Logger.appendLine('Got OAuth callback from BB: ' + request.url);
-					let params = url.parse(request.url,true).query;
-								if (params.error) {
-									reject(params.error);
-									return;
-								}
-								// TODO add in state: https://github.com/kristianmandrup/bitbucket-auth/blob/master/client/generic/server/sample.js#L72
+					let requrl = url.parse(request.url,true)
+					let params = requrl.query;
 
-								response.writeHead(200, {'Content-Type': 'text/html'});
-								response.write('<!DOCTYPE "html">');
-								response.write('<html>');
-								response.write('<head>');
-								response.write('<title>Hello World Page</title>');
-								response.write('</head>');
-								response.write('<body>');
-								response.write('Hello World!');
-								response.write('</body>');
-								response.write('</html>');
-								response.end();
+					if (requrl.path != "/") {
+						staticResource(request,response);
+					}
+					if (params.error) {
+						reject(params.error);
+						return;
+					}
 
-								let bbcode:string = params.code.toString();
-								Logger.appendLine('code is: ' + bbcode);
+					if (state != params.state.toString()) {
+						reject('State value did not match');
+						return;
+					}
 
-								let postData = qs.stringify({
-									'grant_type' : 'authorization_code',
-									'code' : bbcode
-								});
+					fs.readFile(Resource.templates.AuthSuccess, function(err, data) {
+						if (err) {
+							response.writeHead(404, 'Not Found');
+							response.write('404: File Not Found!');
+							return response.end();
+						}
 
-								// make basic auth request to get access token
-								let tokenOptions = {
-									host: 'bitbucket.org',
-									port: 443,
-									path: '/site/oauth2/access_token',
-									method: 'POST',
-									auth: 'DQhnLnWwACPXJXW2qX:uwACseDkGP4hc7JvWHAatZZruHzYpLMH',
-									headers: {
-										'Content-Type': 'application/x-www-form-urlencoded',
-										'Content-Length': Buffer.byteLength(postData)
-									  }
-								};
-								let gettoken = https.request(tokenOptions, res => {
-									res.on('data', (d) => {
-										Logger.appendLine('got BB token data');
-										Logger.appendLine(d.toString());
-										Logger.appendLine('end BB token data');
+						response.statusCode = 200;
 
-										let tokenData = JSON.parse(d.toString())
-										access = tokenData.access_token
-										refresh = tokenData.refresh_token
+						response.write(data);
+						return response.end();
+					});
 
-										Logger.appendLine('access_token: ' + access);
-										Logger.appendLine('refresh_token: ' + refresh);
-									});
-								});
+					let bbcode:string = params.code.toString();
+					Logger.appendLine('code is: ' + bbcode);
 
-								gettoken.write(postData);
-								gettoken.end();
+					let postData = qs.stringify({
+						'grant_type' : 'authorization_code',
+						'code' : bbcode
+					});
 
-								resolve(access)
-								this.finish(resolve, access);
+					// make basic auth request to get access token
+					let tokenOptions = {
+						host: 'bitbucket.org',
+						port: 443,
+						path: '/site/oauth2/access_token',
+						method: 'POST',
+						auth: KEY + ':' + SECRET,
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded',
+							'Content-Length': Buffer.byteLength(postData)
+							}
+					};
+					let gettoken = https.request(tokenOptions, res => {
+						res.on('data', (d) => {
+							Logger.appendLine('got BB token data');
+							Logger.appendLine(d.toString());
+							Logger.appendLine('end BB token data');
+
+							let tokenData = JSON.parse(d.toString())
+							access = tokenData.access_token
+							refresh = tokenData.refresh_token
+
+							Logger.appendLine('access_token: ' + access);
+							Logger.appendLine('refresh_token: ' + refresh);
+						});
+					});
+
+					gettoken.write(postData);
+					gettoken.end();
+					this._tokens = new Tokens(access,refresh);
+					resolve(this._tokens)
+					this.finish(resolve, this._tokens);
 				});
 				this._srv.listen(9090);
-				vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`${HTTP_PROTOCOL}://${this.host}/site/oauth2/authorize?client_id=DQhnLnWwACPXJXW2qX&response_type=code`));
+				vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`${HTTP_PROTOCOL}://${this.host}/site/oauth2/authorize?client_id=${KEY}&response_type=code&state=${state}`));
 			} catch (reason) {
 				reject(reason);
 				return;
@@ -94,12 +121,12 @@ class Client {
 		});
 	}
 
-	private finish(resolve: (value?: string | PromiseLike<string>) => void, token?: string): void {
-		this._token = token;
+	private finish(resolve: (value?: Tokens | PromiseLike<Tokens>) => void, tokens?: Tokens): void {
+		this._tokens = tokens;
 		try {
 			this._srv.close();
 		} catch { } // at this point we don't care if we can't close the socket
-		resolve(this._token);
+		resolve(this._tokens);
 	}
 }
 
@@ -148,7 +175,7 @@ export class BitbucketServer {
 
 	public constructor(host: string) {
 		host = host.toLocaleLowerCase();
-		this.hostConfiguration = { host, username: 'oauth', token: undefined };
+		this.hostConfiguration = { host, username: 'oauth', token: undefined, refresh: undefined };
 		this.hostUri = vscode.Uri.parse(host);
 	}
 
@@ -156,8 +183,9 @@ export class BitbucketServer {
 		//return new Client(this.hostConfiguration.host)
 		return new Client('bitbucket.org')
 			.start()
-			.then(token => {
-				this.hostConfiguration.token = token;
+			.then(tokens => {
+				this.hostConfiguration.token = tokens.access;
+				this.hostConfiguration.refresh = tokens.refresh;
 				return this.hostConfiguration;
 			});
 	}
@@ -170,6 +198,8 @@ export class BitbucketServer {
 			token = this.hostConfiguration.token;
 		}
 
+		let refresh = this.hostConfiguration.refresh;
+
 		const options = BitbucketManager.getOptions(this.hostUri, 'GET', '/user', token);
 
 		return new Promise<IHostConfiguration>((resolve, _) => {
@@ -179,6 +209,7 @@ export class BitbucketServer {
 					if (res.statusCode === 200) {
 						this.hostConfiguration.username = username;
 						this.hostConfiguration.token = token;
+						this.hostConfiguration.refresh = refresh;
 						hostConfig = this.hostConfiguration;
 					}
 				} catch (e) {

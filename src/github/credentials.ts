@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as Octokit from '@octokit/rest';
+import * as Bitbukit from 'bitbucket';
 import * as vscode from 'vscode';
 import { IHostConfiguration, HostHelper } from '../authentication/configuration';
 import { BitbucketServer } from '../authentication/bitbucketServer';
@@ -15,32 +15,53 @@ import { ITelemetry } from './interface';
 const TRY_AGAIN = 'Try again?';
 const SIGNIN_COMMAND = 'Sign in';
 
+/*
+const fs = require('fs');
+const HttpsProxyAgent = require('https-proxy-agent');
+const BitBucket = require('bitbucket')
+
+const bitbucket = new BitBucket({options:{ agent:new HttpsProxyAgent('http://127.0.0.1:8888'), ca: [fs.readFileSync('charles-ssl-proxying-certificate.pem')]}})
+
+bitbucket.authenticate({
+    type: 'oauth',
+    key: 'DQhnLnWwACPXJXW2qX',
+    secret: 'uwACseDkGP4hc7JvWHAatZZruHzYpLMH'
+  })
+
+
+  bitbucket.repositories
+  .list({ username: 'brainicorn' })
+  .then(({ data, headers }) => console.log(data.values))
+  .catch(err => console.error(err))
+
+  */
+
 export class CredentialStore {
-	private _octokits: Map<string, Octokit>;
+	private _bitbukits: Map<string, Bitbukit>;
 	private _configuration: VSCodeConfiguration;
 	private _authenticationStatusBarItems: Map<string, vscode.StatusBarItem>;
 
 	constructor(configuration: any,
 		private readonly _telemetry: ITelemetry) {
 		this._configuration = configuration;
-		this._octokits = new Map<string, Octokit>();
+		this._bitbukits = new Map<string, Bitbukit>();
 		this._authenticationStatusBarItems = new Map<string, vscode.StatusBarItem>();
 	}
 
 	public reset() {
-		this._octokits = new Map<string, Octokit>();
+		this._bitbukits = new Map<string, Bitbukit>();
 
 		this._authenticationStatusBarItems.forEach(statusBarItem => statusBarItem.dispose());
 		this._authenticationStatusBarItems = new Map<string, vscode.StatusBarItem>();
 	}
 
-	public async hasOctokit(remote: Remote): Promise<boolean> {
+	public async hasBitbukit(remote: Remote): Promise<boolean> {
 		// the remote url might be http[s]/git/ssh but we always go through https for the api
 		// so use a normalized http[s] url regardless of the original protocol
 		const normalizedUri = remote.gitProtocol.normalizeUri();
 		const host = `${normalizedUri.scheme}://${normalizedUri.authority}`;
 
-		if (this._octokits.has(host)) {
+		if (this._bitbukits.has(host)) {
 			return true;
 		}
 
@@ -48,30 +69,30 @@ export class CredentialStore {
 
 		const creds: IHostConfiguration = this._configuration;
 		const server = new BitbucketServer(host);
-		let octokit: Octokit;
+		let bitbukit: Bitbukit;
 
 		if (creds.token) {
 			if (await server.validate(creds.username, creds.token)) {
-				octokit = this.createOctokit('token', creds);
+				bitbukit = this.createBitbukit('token', creds);
 			} else {
 				this._configuration.removeHost(creds.host);
 			}
 		}
 
-		if (octokit) {
-			this._octokits.set(host, octokit);
+		if (bitbukit) {
+			this._bitbukits.set(host, bitbukit);
 		}
 		this.updateAuthenticationStatusBar(remote);
-		return this._octokits.has(host);
+		return this._bitbukits.has(host);
 	}
 
-	public getOctokit(remote: Remote): Octokit {
+	public getBitbukit(remote: Remote): Bitbukit {
 		const normalizedUri = remote.gitProtocol.normalizeUri();
 		const host = `${normalizedUri.scheme}://${normalizedUri.authority}`;
-		return this._octokits.get(host);
+		return this._bitbukits.get(host);
 	}
 
-	public async loginWithConfirmation(remote: Remote): Promise<Octokit> {
+	public async loginWithConfirmation(remote: Remote): Promise<Bitbukit> {
 		const normalizedUri = remote.gitProtocol.normalizeUri();
 		const result = await vscode.window.showInformationMessage(
 			`In order to use the Pull Requests functionality, you need to sign in to ${normalizedUri.authority}`,
@@ -81,12 +102,12 @@ export class CredentialStore {
 			return await this.login(remote);
 		} else {
 			// user cancelled sign in, remember that and don't ask again
-			this._octokits.set(`${normalizedUri.scheme}://${normalizedUri.authority}`, undefined);
+			this._bitbukits.set(`${normalizedUri.scheme}://${normalizedUri.authority}`, undefined);
 			this._telemetry.on('auth.cancel');
 		}
 	}
 
-	public async login(remote: Remote): Promise<Octokit> {
+	public async login(remote: Remote): Promise<Bitbukit> {
 		this._telemetry.on('auth.start');
 
 		// the remote url might be http[s]/git/ssh but we always go through https for the api
@@ -95,14 +116,14 @@ export class CredentialStore {
 		const host = `${normalizedUri.scheme}://${normalizedUri.authority}`;
 
 		let retry: boolean = true;
-		let octokit: Octokit;
+		let bitbukit: Bitbukit;
 		const server = new BitbucketServer(host);
 
 		while (retry) {
 			try {
 				const login = await server.login();
 				if (login) {
-					octokit = this.createOctokit('token', login);
+					bitbukit = this.createBitbukit('token', login);
 					await this._configuration.update(login.username, login.token, false);
 					vscode.window.showInformationMessage(`You are now signed in to ${normalizedUri.authority}`);
 				}
@@ -113,15 +134,15 @@ export class CredentialStore {
 				}
 			}
 
-			if (octokit) {
+			if (bitbukit) {
 				retry = false;
 			} else if (retry) {
 				retry = (await vscode.window.showErrorMessage(`Error signing in to ${normalizedUri.authority}`, TRY_AGAIN)) === TRY_AGAIN;
 			}
 		}
 
-		if (octokit) {
-			this._octokits.set(host, octokit);
+		if (bitbukit) {
+			this._bitbukits.set(host, bitbukit);
 			this._telemetry.on('auth.success');
 		} else {
 			this._telemetry.on('auth.fail');
@@ -129,41 +150,38 @@ export class CredentialStore {
 
 		this.updateAuthenticationStatusBar(remote);
 
-		return octokit;
+		return bitbukit;
 	}
 
-	private createOctokit(type: string, creds: IHostConfiguration): Octokit {
-		const octokit = new Octokit({
-			baseUrl: `${HostHelper.getApiHost(creds).toString().slice(0, -1)}${HostHelper.getApiPath(creds, '')}`,
-			headers: { 'user-agent': 'GitHub VSCode Pull Requests' }
-		});
+	private createBitbukit(type: string, creds: IHostConfiguration): Bitbukit {
+		const bitbukit = new Bitbukit();
 
 		if (creds.token) {
 			if (type === 'token') {
-				octokit.authenticate({
+				bitbukit.authenticate({
 					type: 'token',
 					token: creds.token,
 				});
 			} else {
-				octokit.authenticate({
+				bitbukit.authenticate({
 					type: 'basic',
 					username: creds.username,
 					password: creds.token,
 				});
 			}
 		}
-		return octokit;
+		return bitbukit;
 	}
 
 	private async updateStatusBarItem(statusBarItem: vscode.StatusBarItem, remote: Remote): Promise<void> {
-		const octokit = this.getOctokit(remote);
+		const bitbukit = this.getBitbukit(remote);
 		let text: string;
 		let command: string;
 
-		if (octokit) {
+		if (bitbukit) {
 			try {
-				const user = await octokit.users.get({});
-				text = `$(mark-github) ${user.data.login}`;
+				let { data, headers } = await bitbukit.user.get({  })
+				text = `$(mark-github) ${data.display_name}`;
 			} catch (e) {
 				text = '$(mark-github) Signed in';
 			}

@@ -5,6 +5,7 @@ import { keychain } from '../common/keychain';
 const SETTINGS_NAMESPACE = 'bitbucket';
 const HOSTS_KEY = 'hosts';
 const CREDENTIAL_SERVICE = 'vscode-pull-request-bitbucket';
+const REFRESH_SUFFIX = '-refresh'
 
 export class VSCodeConfiguration extends Configuration {
 	private _hosts: Map<string, IHostConfiguration> = new Map<string, IHostConfiguration>();
@@ -19,7 +20,7 @@ export class VSCodeConfiguration extends Configuration {
 			this.loadConfiguration().then(_ => {
 				if (this.host) {
 					const config = this.getHost(this.host);
-					super.update(config.username, config.token, true);
+					super.update(config.username, config.token, config.refresh, true);
 				}
 			});
 		});
@@ -47,7 +48,7 @@ export class VSCodeConfiguration extends Configuration {
 			this._hosts.set(this.host, this);
 		} else {
 			const config = this.getHost(host);
-			super.update(config.username, config.token);
+			super.update(config.username, config.token, config.refresh);
 		}
 		return this;
 	}
@@ -59,16 +60,17 @@ export class VSCodeConfiguration extends Configuration {
 	public removeHost(host: string): void {
 		this._hosts.delete(host);
 		if (host === this.host) {
-			super.update(undefined, undefined, false);
+			super.update(undefined, undefined, undefined, false);
 		}
 		this.saveConfiguration();
 	}
 
-	public async update(username: string | undefined, token: string | undefined, raiseEvent: boolean = true): Promise<boolean> {
+	public async update(username: string | undefined, token: string | undefined, refresh: string | undefined, raiseEvent: boolean = true): Promise<boolean> {
 		const key = this.host;
 		try {
 			// this might fail. if it does, fallback to saving the token in the user settings file
 			await keychain.setPassword(CREDENTIAL_SERVICE, key, token);
+			await keychain.setPassword(CREDENTIAL_SERVICE, key + REFRESH_SUFFIX, refresh);
 			if (!this._hostTokensInKeychain.has(key)) {
 				this._hostTokensInKeychain.add(key);
 			}
@@ -77,7 +79,7 @@ export class VSCodeConfiguration extends Configuration {
 				this._hostTokensInKeychain.delete(key);
 			}
 		}
-		return super.update(username, token, false).then(hasChanged => {
+		return super.update(username, token, refresh, false).then(hasChanged => {
 			if (hasChanged) {
 				this.saveConfiguration();
 				// raise changed events only after the host list has been roundtripped to disk
@@ -119,6 +121,10 @@ export class VSCodeConfiguration extends Configuration {
 						this._hostTokensInKeychain.add(c.host);
 					}
 				} catch { }
+
+				try {
+					c.refresh = await keychain.getPassword(CREDENTIAL_SERVICE, c.host + REFRESH_SUFFIX) || undefined;
+				} catch { }
 			}
 			this._hosts.set(c.host, c);
 		})).then(_ => {
@@ -127,6 +133,7 @@ export class VSCodeConfiguration extends Configuration {
 					host: this.host,
 					username: this.username,
 					token: this.token,
+					refresh: this.refresh,
 				});
 			}
 		});
@@ -138,13 +145,15 @@ export class VSCodeConfiguration extends Configuration {
 				host: this.host,
 				username: this.username,
 				token: this.token,
+				refresh: this.refresh,
 			});
 		}
 		const config = vscode.workspace.getConfiguration(SETTINGS_NAMESPACE);
 		// don't save the token to the user settings file if it's in the keychain
 		config.update(HOSTS_KEY, Array.from(this._hosts.values()).map(x => {
 			const token = this._hostTokensInKeychain.has(x.host) ? 'system' : x.token;
-			return { host: x.host, username: x.username, token };
+			const refresh = this._hostTokensInKeychain.has(x.host) ? 'system' : x.refresh;
+			return { host: x.host, username: x.username, token, refresh };
 		}), true);
 	}
 }

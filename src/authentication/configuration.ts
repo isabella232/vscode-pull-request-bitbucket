@@ -4,6 +4,7 @@ export interface IHostConfiguration {
 	host: string;
 	username: string | undefined;
 	token: string | undefined;
+	refresh: string | undefined;
 }
 
 export const HostHelper = class {
@@ -33,6 +34,7 @@ export interface IConfiguration extends IHostConfiguration {
 export class Configuration implements IConfiguration {
 	public username: string | undefined;
 	public token: string | undefined;
+	public refresh: string | undefined;
 	public onDidChange: vscode.Event<IConfiguration>;
 	private _emitter: vscode.EventEmitter<IConfiguration>;
 
@@ -41,10 +43,11 @@ export class Configuration implements IConfiguration {
 		this.onDidChange = this._emitter.event;
 	}
 
-	public update(username: string | undefined, token: string | undefined, raiseEvent: boolean = true): Promise<boolean> {
+	public update(username: string | undefined, token: string | undefined, refresh: string | undefined, raiseEvent: boolean = true): Promise<boolean> {
 		if (username !== this.username || token !== this.token) {
 			this.username = username;
 			this.token = token;
+			this.refresh = refresh;
 			if (raiseEvent) {
 				this._emitter.fire(this);
 			}
