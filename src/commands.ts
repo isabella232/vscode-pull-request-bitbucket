@@ -38,12 +38,12 @@ function ensurePR(prManager: IPullRequestManager, pr?: PRNode | IPullRequestMode
 export function registerCommands(context: vscode.ExtensionContext, prManager: IPullRequestManager,
 	reviewManager: ReviewManager, telemetry: ITelemetry) {
 	// initialize resources
-	context.subscriptions.push(vscode.commands.registerCommand('pr.openPullRequestInGitHub', (e: PRNode | IPullRequestModel) => {
+	context.subscriptions.push(vscode.commands.registerCommand('pr.openPullRequestInBitbucket', (e: PRNode | DescriptionNode | IPullRequestModel) => {
 		if (!e) {
 			if (prManager.activePullRequest) {
 				vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(prManager.activePullRequest.html_url));
 			}
-		} else if (e instanceof PRNode) {
+		} else if (e instanceof PRNode || e instanceof DescriptionNode) {
 			vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(e.pullRequestModel.html_url));
 		} else {
 			vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(e.html_url));
@@ -51,9 +51,9 @@ export function registerCommands(context: vscode.ExtensionContext, prManager: IP
 		telemetry.on('pr.openInGitHub');
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('pr.openFileInGitHub', (e: GitFileChangeNode) => {
-		vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(e.blobUrl));
-	}));
+	// context.subscriptions.push(vscode.commands.registerCommand('pr.openPullRequestInBitbucket', (e: GitFileChangeNode) => {
+	// 	vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(e.blobUrl));
+	// }));
 
 	context.subscriptions.push(vscode.commands.registerCommand('pr.openDiffView', (parentFilePath: string, filePath: string, fileName: string, isPartial: boolean, opts: any) => {
 		if (isPartial) {

@@ -28,7 +28,6 @@ bitbucket.authenticate({
     secret: 'uwACseDkGP4hc7JvWHAatZZruHzYpLMH'
   })
 
-
   bitbucket.repositories
   .list({ username: 'brainicorn' })
   .then(({ data, headers }) => console.log(data.values))
@@ -124,7 +123,7 @@ export class CredentialStore {
 				const login = await server.login();
 				if (login) {
 					bitbukit = this.createBitbukit('token', login);
-					await this._configuration.update(login.username, login.token, false);
+					await this._configuration.update(login.username, login.token, login.refresh);
 					vscode.window.showInformationMessage(`You are now signed in to ${normalizedUri.authority}`);
 				}
 			} catch (e) {
@@ -180,7 +179,7 @@ export class CredentialStore {
 
 		if (bitbukit) {
 			try {
-				let { data, headers } = await bitbukit.user.get({  })
+				let { data, headers } = await bitbukit.user.get({  });
 				text = `$(mark-github) ${data.display_name}`;
 			} catch (e) {
 				text = '$(mark-github) Signed in';

@@ -5,7 +5,7 @@ import { keychain } from '../common/keychain';
 const SETTINGS_NAMESPACE = 'bitbucket';
 const HOSTS_KEY = 'hosts';
 const CREDENTIAL_SERVICE = 'vscode-pull-request-bitbucket';
-const REFRESH_SUFFIX = '-refresh'
+const REFRESH_SUFFIX = '-refresh';
 
 export class VSCodeConfiguration extends Configuration {
 	private _hosts: Map<string, IHostConfiguration> = new Map<string, IHostConfiguration>();

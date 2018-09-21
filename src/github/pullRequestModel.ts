@@ -31,23 +31,14 @@ export class PullRequestModel implements IPullRequestModel {
 
 	public get userAvatar(): string {
 		if (this.prItem) {
-			return this.prItem.user.avatar_url;
+			return this.prItem.author.links.avatar.href;
 		}
 
 		return null;
 	}
 	public get userAvatarUri(): vscode.Uri {
 		if (this.prItem) {
-			let key = this.userAvatar;
-			let gravatar = vscode.Uri.parse(`${key}&s=${64}`);
-
-			// hack, to ensure queries are not wrongly encoded.
-			const originalToStringFn = gravatar.toString;
-			gravatar.toString = function (skipEncoding?: boolean | undefined) {
-				return originalToStringFn.call(gravatar, true);
-			};
-
-			return gravatar;
+			return vscode.Uri.parse(this.userAvatar);
 		}
 
 		return null;
@@ -55,7 +46,7 @@ export class PullRequestModel implements IPullRequestModel {
 
 	public get body(): string {
 		if (this.prItem) {
-			return this.prItem.body;
+			return this.prItem.summary.raw;
 		}
 		return null;
 	}
@@ -68,46 +59,46 @@ export class PullRequestModel implements IPullRequestModel {
 	}
 
 	update(prItem: IPullRequest): void {
-		this.prNumber = prItem.number;
+		this.prNumber = prItem.id;
 		this.title = prItem.title;
-		this.html_url = prItem.html_url;
+		this.html_url = prItem.links.html.href;
 		this.author = {
-			login: prItem.user.login,
-			isUser: prItem.user.type === 'User',
-			isEnterprise: prItem.user.type === 'Enterprise',
-			avatarUrl: prItem.user.avatar_url,
-			htmlUrl: prItem.user.html_url
+			login: prItem.author.username,
+			isUser: true,
+			isEnterprise: null,
+			avatarUrl: prItem.author.links.avatar.href,
+			htmlUrl: prItem.author.links.html.href
 		};
 
 		switch (prItem.state) {
-			case 'open':
+			case 'OPEN':
 				this.state = PullRequestStateEnum.Open;
 				break;
-			case 'merged':
+			case 'MERGED':
 				this.state = PullRequestStateEnum.Merged;
 				break;
-			case 'closed':
+			case 'DECLINED':
 				this.state = PullRequestStateEnum.Closed;
 				break;
 		}
 
-		if (prItem.assignee) {
+		if (prItem.author) {
 			this.assignee = {
-				login: prItem.assignee.login,
-				isUser: prItem.assignee.type === 'User',
-				isEnterprise: prItem.assignee.type === 'Enterprise',
-				avatarUrl: prItem.assignee.avatar_url,
-				htmlUrl: prItem.assignee.html_url
+				login: prItem.author.username,
+				isUser: true,
+				isEnterprise: null,
+				avatarUrl: prItem.author.links.avatar.href,
+				htmlUrl: prItem.author.links.html.href
 			};
 		}
 
-		this.createdAt = prItem.created_at;
-		this.updatedAt = prItem.updated_at ? prItem.updated_at : this.createdAt;
-		this.commentCount = prItem.comments;
-		this.commitCount = prItem.commits;
+		this.createdAt = prItem.created_on;
+		this.updatedAt = prItem.updated_on ? prItem.updated_on : this.createdAt;
+		this.commentCount = prItem.comment_count;
+		this.commitCount = 1;
 
-		this.head = new GitHubRef(prItem.head.ref, prItem.head.label, prItem.head.sha, prItem.head.repo.clone_url);
-		this.base = new GitHubRef(prItem.base.ref, prItem.base.label, prItem.base.sha, prItem.base.repo.clone_url);
+		this.head = new GitHubRef(prItem.source.branch.name, prItem.source.branch.name, prItem.source.commit.hash, prItem.source.repository.links.html.href);
+		this.base = new GitHubRef(prItem.destination.branch.name, prItem.destination.branch.name, prItem.destination.commit.hash, prItem.destination.repository.links.html.href);
 	}
 
 	equals(other: IPullRequestModel): boolean {

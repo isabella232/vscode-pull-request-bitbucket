@@ -42,33 +42,71 @@ export interface IRepository {
 	sha: string;
 }
 
-// This interface is incomplete
+// Copied from BitBucket.Schema.PullRequest
 export interface IPullRequest {
-	additions: number;
-	assignee: any;
-	assignees: any[];
-	author_association: string;
-	base: IRepository;
-	body: string;
-	changed_files: number;
-	closed_at: string;
-	comments: number;
-	commits: number;
-	created_at: string;
-	head: IRepository;
-	html_url: string;
-	id: number;
-	labels: any[];
-	locked: boolean;
-	maintainer_can_modify: boolean;
-	merge_commit_sha; boolean;
-	mergable: boolean;
-	number: number;
-	rebaseable: boolean;
-	state: string;
-	title: string;
-	updated_at: string;
-	user: any;
+	author?: BitBucket.Schema.Account;
+	close_source_branch?: boolean;
+	closed_by?: BitBucket.Schema.Account;
+	comment_count?: number;
+	created_on?: string;
+	destination?: BitBucket.Schema.PullrequestEndpoint;
+	id?: number;
+	links?: {
+		activity?: {
+			href?: string;
+			name?: string;
+		};
+		approve?: {
+			href?: string;
+			name?: string;
+		};
+		comments?: {
+			href?: string;
+			name?: string;
+		};
+		commits?: {
+			href?: string;
+			name?: string;
+		};
+		decline?: {
+			href?: string;
+			name?: string;
+		};
+		diff?: {
+			href?: string;
+			name?: string;
+		};
+		html?: {
+			href?: string;
+			name?: string;
+		};
+		merge?: {
+			href?: string;
+			name?: string;
+		};
+		self?: {
+			href?: string;
+			name?: string;
+		};
+	};
+	merge_commit?: {
+		hash?: string;
+	};
+	participants?: BitBucket.Schema.Participant[];
+	reason?: string;
+	reviewers?: BitBucket.Schema.Account[];
+	source?: BitBucket.Schema.PullrequestEndpoint;
+	base?: BitBucket.Schema.PullrequestEndpoint;
+	state?: 'MERGED' | 'SUPERSEDED' | 'OPEN' | 'DECLINED';
+	summary?: {
+		html?: string;
+		markup?: 'markdown' | 'creole' | 'plaintext';
+		raw?: string;
+	};
+	task_count?: number;
+	title?: string;
+	updated_on?: string;
+	[k: string]: any;
 }
 
 export interface FileChange {

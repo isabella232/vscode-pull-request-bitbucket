@@ -36,7 +36,7 @@
           "type": "boolean",
           "description": "Disable usage data and errors to be sent to a Bitbucket online service"
         },
-        "github.hosts": {
+        "bitbucket.hosts": {
           "type": "array",
           "default": [],
           "description": "List of host credentials. For example, \"bitbucket.hosts\": [ { \"host\": \"https://bitbucket.org\", \"token\": \"BITBUCKET TOKEN\" } ]",
@@ -286,16 +286,17 @@
     "webpack-cli": "^2.0.10"
   },
   "dependencies": {
-    "bitbucket": "^1.2.0",
-    "randomstring": "^1.1.5",
-    "serve-static": "^1.13.2",
     "@octokit/rest": "^15.9.5",
-    "node-emoji": "^1.8.1",
+    "bitbucket": "^1.2.0",
     "git-credential-node": "^1.1.0",
     "iconv-lite": "0.4.23",
     "markdown-it": "^8.4.0",
     "markdown-it-checkbox": "^1.1.0",
     "moment": "^2.22.1",
+    "node-emoji": "^1.8.1",
+    "parse-diff": "^0.4.2",
+    "randomstring": "^1.1.5",
+    "serve-static": "^1.13.2",
     "telemetry-github": "https://github.com/shana/telemetry/releases/download/0.3.2/telemetry-github-v0.3.2.tgz",
     "tmp": "^0.0.31",
     "vscode": "^1.1.18",

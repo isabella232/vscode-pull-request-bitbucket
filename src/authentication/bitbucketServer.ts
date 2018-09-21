@@ -18,10 +18,10 @@ export class Tokens {
 	access:string;
 	refresh:string;
 
-	constructor (access: string, refresh: string){
-		this.access = access
-		this.refresh = refresh
-	 }
+	constructor (access: string, refresh: string) {
+		this.access = access;
+		this.refresh = refresh;
+	}
 }
 
 class Client {
@@ -31,20 +31,20 @@ class Client {
 
 	// TODO:  start localhost listener
 	public start(): Promise<Tokens> {
-		let access:string
-		let refresh:string
+		let access:string;
+		let refresh:string;
 		let state:string = randomstring.generate();
-		let staticResource = serveStatic(Resource.resourcePath, {'index': false});
+		let staticResource = serveStatic(Resource.resourcePath, {index: false});
 
 		return new Promise((resolve, reject) => {
 			try {
 				Logger.appendLine('creating BB server callback listener');
 				this._srv = http.createServer((request,response) => {
 					Logger.appendLine('Got OAuth callback from BB: ' + request.url);
-					let requrl = url.parse(request.url,true)
+					let requrl = url.parse(request.url,true);
 					let params = requrl.query;
 
-					if (requrl.path != "/") {
+					if (requrl.path !== '/') {
 						staticResource(request,response);
 					}
 					if (params.error) {
@@ -52,7 +52,7 @@ class Client {
 						return;
 					}
 
-					if (state != params.state.toString()) {
+					if (state !== params.state.toString()) {
 						reject('State value did not match');
 						return;
 					}
@@ -74,8 +74,8 @@ class Client {
 					Logger.appendLine('code is: ' + bbcode);
 
 					let postData = qs.stringify({
-						'grant_type' : 'authorization_code',
-						'code' : bbcode
+						grant_type : 'authorization_code',
+						code : bbcode
 					});
 
 					// make basic auth request to get access token
@@ -90,26 +90,28 @@ class Client {
 							'Content-Length': Buffer.byteLength(postData)
 							}
 					};
+
 					let gettoken = https.request(tokenOptions, res => {
 						res.on('data', (d) => {
 							Logger.appendLine('got BB token data');
 							Logger.appendLine(d.toString());
 							Logger.appendLine('end BB token data');
 
-							let tokenData = JSON.parse(d.toString())
-							access = tokenData.access_token
-							refresh = tokenData.refresh_token
+							let tokenData = JSON.parse(d.toString());
+							access = tokenData.access_token;
+							refresh = tokenData.refresh_token;
 
 							Logger.appendLine('access_token: ' + access);
 							Logger.appendLine('refresh_token: ' + refresh);
+
+							this._tokens = new Tokens(access,refresh);
+							resolve(this._tokens);
+							this.finish(resolve, this._tokens);
 						});
 					});
 
 					gettoken.write(postData);
 					gettoken.end();
-					this._tokens = new Tokens(access,refresh);
-					resolve(this._tokens)
-					this.finish(resolve, this._tokens);
 				});
 				this._srv.listen(9090);
 				vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`${HTTP_PROTOCOL}://${this.host}/site/oauth2/authorize?client_id=${KEY}&response_type=code&state=${state}`));

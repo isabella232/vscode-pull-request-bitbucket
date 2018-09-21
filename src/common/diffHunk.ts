@@ -247,6 +247,10 @@ export function getGitChangeType(status: string): GitChangeType {
 			return GitChangeType.RENAME;
 		case 'modified':
 			return GitChangeType.MODIFY;
+		case 'merge conflict':
+			return GitChangeType.MODIFY;
+		case 'local deleted':
+			return GitChangeType.MODIFY;
 		default:
 			return GitChangeType.UNKNOWN;
 	}

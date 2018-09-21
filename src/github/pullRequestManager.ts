@@ -18,6 +18,7 @@ import { Configuration } from '../authentication/configuration';
 import { GitHubManager } from '../authentication/githubServer';
 import { formatError, uniqBy } from '../common/utils';
 import Logger from '../common/logger';
+import * as gitDiffParser from 'parse-diff';
 
 interface PageInformation {
 	pullRequestPage: number;
@@ -57,19 +58,20 @@ export class PullRequestManager implements IPullRequestManager {
 
 	async updateRepositories(): Promise<void> {
 		const potentialRemotes = this._repository.remotes.filter(remote => remote.host);
-		let gitHubRemotes = await Promise.all(potentialRemotes.map(remote => this._githubManager.isGitHub(remote.gitProtocol.normalizeUri())))
-			.then(results => potentialRemotes.filter((_, index, __) => results[index]))
-			.catch(e => {
-				Logger.appendLine(`Resolving GitHub remotes failed: ${formatError(e)}`);
-				vscode.window.showErrorMessage(`Resolving GitHub remotes failed: ${formatError(e)}`);
-				return [];
-			});
+		// let gitHubRemotes = await Promise.all(potentialRemotes.map(remote => this._githubManager.isGitHub(remote.gitProtocol.normalizeUri())))
+		// 	.then(results => potentialRemotes.filter((_, index, __) => results[index]))
+		// 	.catch(e => {
+		// 		Logger.appendLine(`Resolving GitHub remotes failed: ${formatError(e)}`);
+		// 		vscode.window.showErrorMessage(`Resolving GitHub remotes failed: ${formatError(e)}`);
+		// 		return [];
+		// 	});
+		let gitHubRemotes = potentialRemotes;
 		gitHubRemotes = uniqBy(gitHubRemotes, remote => remote.gitProtocol.normalizeUri().toString());
 
 		if (gitHubRemotes.length) {
-			await vscode.commands.executeCommand('setContext', 'github:hasGitHubRemotes', true);
+			await vscode.commands.executeCommand('setContext', 'bitbucket:hasBitbucketRemotes', true);
 		} else {
-			await vscode.commands.executeCommand('setContext', 'github:hasGitHubRemotes', false);
+			await vscode.commands.executeCommand('setContext', 'bitbucket:hasBitbucketRemotes', false);
 			return;
 		}
 
@@ -257,7 +259,7 @@ export class PullRequestManager implements IPullRequestManager {
 		// const rawComments = reviewData.data;
 		// return parserCommentDiffHunk(rawComments);
 
-		return null;
+		return [];
 	}
 
 	async getPullRequestCommits(pullRequest: IPullRequestModel): Promise<Commit[]> {
@@ -275,7 +277,7 @@ export class PullRequestManager implements IPullRequestManager {
 		// 	return [];
 		// }
 
-		return null;
+		return [];
 	}
 
 	async getCommitChangedFiles(pullRequest: IPullRequestModel, commit: Commit): Promise<FileChange[]> {
@@ -293,7 +295,7 @@ export class PullRequestManager implements IPullRequestManager {
 		// 	return [];
 		// }
 
-		return null;
+		return [];
 	}
 
 	async getReviewComments(pullRequest: IPullRequestModel, reviewId: string): Promise<Comment[]> {
@@ -324,7 +326,7 @@ export class PullRequestManager implements IPullRequestManager {
 
 		// return await parseTimelineEvents(this, pullRequest, ret.data);
 
-		return null;
+		return [];
 	}
 
 	async getIssueComments(pullRequest: IPullRequestModel): Promise<Comment[]> {
@@ -463,23 +465,79 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	async getPullRequestChangedFiles(pullRequest: IPullRequestModel): Promise<FileChange[]> {
-		// const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		// let response = await bitbukit.pullRequests.getFiles({
-		// 	owner: remote.owner,
-		// 	repo: remote.repositoryName,
-		// 	number: pullRequest.prNumber,
-		// 	per_page: 100
+		// let { data } = await bitbukit.pullrequests.getDiffStat({
+		// 	username: remote.owner,
+		// 	repo_slug: remote.repositoryName,
+		// 	pull_request_id: pullRequest.prNumber.toString()
 		// });
-		// let { data } = response;
 
-		// while (response.headers.link && bitbukit.hasNextPage(response.headers)) {
-		// 	response = await bitbukit.getNextPage(response.headers);
+		// TODO handle paginated responses
+		// while (data.next) {
+		// 	let response = await bitbukit.getNextPage(data);
 		// 	data = data.concat(response.data);
 		// }
-		// return data;
+		let result: FileChange[] = [];
+		// data.values.forEach(item => {
+		// 	if (item.new) {
+		// 		result.push({
+		// 			blob_url: item.new.links.self.href,
+		// 			filename: item.new.path,
+		// 			status: item.status,
+		// 			additions: item.lines_added,
+		// 			changes: item.lines_added,
+		// 			deletions: item.lines_removed,
+		// 			contents_url: item.new.links.self.href,
+		// 			patch: undefined,
+		// 			raw_url: item.new.links.self.href,
+		// 			sha: undefined
+		// 		});
+		// 	} else if (item.old) {
+		// 		result.push({
+		// 			blob_url: item.old.links.self.href,
+		// 			filename: item.old.path,
+		// 			status: item.status,
+		// 			additions: item.lines_added,
+		// 			changes: item.lines_added,
+		// 			deletions: item.lines_removed,
+		// 			contents_url: item.old.links.self.href,
+		// 			patch: undefined,
+		// 			raw_url: item.old.links.self.href,
+		// 			sha: undefined
+		// 		});
+		// 	}
 
-		return null;
+		// });
+
+		let res = await bitbukit.pullrequests.getDiff({
+			username: remote.owner,
+			repo_slug: remote.repositoryName,
+			pull_request_id: pullRequest.prNumber.toString()
+		});
+
+		let files = gitDiffParser(res.data);
+		files.forEach(item => {
+			let status = 'modified';
+			if (item.new) {
+				status = 'added';
+			} else if (item.deleted) {
+				status = 'removed';
+			}
+			result.push({
+				blob_url: remote.url,
+				raw_url: remote.url,
+				contents_url: remote.url,
+				filename: item.to ? item.to : item.from,
+				status: status,
+				additions: item.additions,
+				changes: item.chunks.length,
+				deletions: item.deletions,
+				patch: res.data,
+				sha: undefined
+			})
+		});
+		return result;
 	}
 
 	async getPullRequestRepositoryDefaultBranch(pullRequest: IPullRequestModel): Promise<string> {
@@ -488,24 +546,22 @@ export class PullRequestManager implements IPullRequestManager {
 	}
 
 	async fullfillPullRequestMissingInfo(pullRequest: IPullRequestModel): Promise<void> {
-		// try {
-		// 	const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
+		try {
+			const { bitbukit, remote } = await (pullRequest as PullRequestModel).githubRepository.ensure();
 
-		// 	if (!pullRequest.base) {
-		// 		const { data } = await bitbukit.pullRequests.get({
-		// 			owner: remote.owner,
-		// 			repo: remote.repositoryName,
-		// 			number: pullRequest.prNumber
-		// 		});
-		// 		pullRequest.update(data);
-		// 	}
+			if (!pullRequest.base) {
+				const { data } = await bitbukit.pullrequests.get({
+					username: remote.owner,
+					repo_slug: remote.repositoryName,
+					pull_request_id: pullRequest.prNumber
+				});
+				pullRequest.update(data);
+			}
 
-		// 	pullRequest.mergeBase = await PullRequestGitHelper.getPullRequestMergeBase(this._repository, remote, pullRequest);
-		// } catch (e) {
-		// 	vscode.window.showErrorMessage(`Fetching Pull Request merge base failed: ${formatError(e)}`);
-		// }
-
-		return null;
+			pullRequest.mergeBase = await PullRequestGitHelper.getPullRequestMergeBase(this._repository, remote, pullRequest);
+		} catch (e) {
+			vscode.window.showErrorMessage(`Fetching Pull Request merge base failed: ${formatError(e)}`);
+		}
 	}
 
 	//#region Git related APIs

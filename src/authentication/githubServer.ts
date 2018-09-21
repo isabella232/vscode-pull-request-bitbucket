@@ -192,7 +192,7 @@ export class GitHubServer {
 
 	public constructor(host: string) {
 		host = host.toLocaleLowerCase();
-		this.hostConfiguration = { host, username: 'oauth', token: undefined };
+		this.hostConfiguration = { host: host, username: 'oauth', token: undefined, refresh: undefined };
 		this.hostUri = vscode.Uri.parse(host);
 	}
 

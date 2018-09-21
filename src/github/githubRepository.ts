@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//import * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import * as Bitbukit from 'bitbucket';
 import Logger from '../common/logger';
 import { Remote } from '../common/remote';
-import { PRType, IGitHubRepository } from './interface';
+import { PRType, IGitHubRepository, IPullRequest } from './interface';
 import { PullRequestModel } from './pullRequestModel';
 import { CredentialStore } from './credentials';
 import { AuthenticationError } from '../common/authentication';
@@ -45,7 +45,7 @@ export class GitHubRepository implements IGitHubRepository {
 				repo_slug: remote.repositoryName
 			});
 
-			this.remote = parseRemote(remote.remoteName, data.clone_url);
+			this.remote = parseRemote(remote.remoteName, data.links.clone[0].href);
 		} catch (e) {
 			Logger.appendLine(`Unable to resolve remote: ${e}`);
 		}
@@ -81,7 +81,7 @@ export class GitHubRepository implements IGitHubRepository {
 				repo_slug: remote.repositoryName
 			});
 
-			return data.default_branch;
+			return data.mainbranch.name;
 		} catch (e) {
 			Logger.appendLine(`GitHubRepository> Fetching default branch failed: ${e}`);
 		}
@@ -94,38 +94,64 @@ export class GitHubRepository implements IGitHubRepository {
 	}
 
 	private async getAllPullRequests(page?: number): Promise<PullRequestData> {
-		// try {
-		// 	const { bitbukit, remote } = await this.ensure();
-		// 	const result = await bitbukit.pullrequests.list({
-		// 		username: remote.owner,
-		// 		repo_slug: remote.repositoryName,
-		// 		page: page.toString() || '1'
-		// 	});
+		try {
+			const { bitbukit, remote } = await this.ensure();
+			const { data } = await bitbukit.pullrequests.list({
+				username: remote.owner,
+				repo_slug: remote.repositoryName,
+				page: page.toString() || '1'
+			});
+			const hasMorePages = !!data.next;
 
-		// 	const hasMorePages = !!result.headers.link && result.headers.link.indexOf('rel="next"') > -1;
-		// 	const pullRequests = result.data.map(item => {
-		// 		if (!item.head.repo) {
-		// 			Logger.appendLine('GitHubRepository> The remote branch for this PR was already deleted.');
-		// 			return null;
-		// 		}
-		// 		return new PullRequestModel(this, this.remote, item);
-		// 	}).filter(item => item !== null);
+			let pulls: IPullRequest[] = data.values;
+			let promises = [];
+			pulls.forEach(item => {
+				promises.push(new Promise(async (resolve, reject) => {
+					let prData = await bitbukit.pullrequests.listCommits({
+						username: remote.owner,
+						repo_slug: remote.repositoryName,
+						pull_request_id: item.id.toString()
+					});
+					resolve(prData);
 
-		// 	return {
-		// 		pullRequests,
-		// 		hasMorePages
-		// 	};
-		// } catch (e) {
-		// 	Logger.appendLine(`GitHubRepository> Fetching all pull requests failed: ${e}`);
-		// 	if (e.code === 404) {
-		// 		// not found
-		// 		vscode.window.showWarningMessage(`Fetching pull requests for remote '${this.remote.remoteName}' failed, please check if the url ${this.remote.url} is valid.`);
-		// 	} else {
-		// 		throw e;
-		// 	}
-		// }
+					const parentCommit: BitBucket.Schema.BaseCommit = prData.data.values[prData.data.values.length-1].parents[0];
+					let baseCommit: BitBucket.Schema.PullrequestEndpoint = {
+						branch: {
+							name: item.destination.branch.name
+						},
+						commit: {
+							hash: parentCommit.hash
+						},
+						repository: item.destination.repository
+					};
+					item.base = baseCommit;
+				}));
+			});
 
-		// return null;
+			let pullRequests = await Promise.all(promises).then(() => {
+				return pulls.map(item => {
+					// if (!item.data.head.repo) {
+					// 	Logger.appendLine('GitHubRepository> The remote branch for this PR was already deleted.');
+					// 	return null;
+					// }
+
+					return new PullRequestModel(this, this.remote, item);
+				}).filter(item => item !== null);
+			});
+
+			return {
+				pullRequests,
+				hasMorePages
+			};
+		} catch (e) {
+			Logger.appendLine(`GitHubRepository> Fetching all pull requests failed: ${e}`);
+			if (e.code === 404) {
+				// not found
+				vscode.window.showWarningMessage(`Fetching pull requests for remote '${this.remote.remoteName}' failed, please check if the url ${this.remote.url} is valid.`);
+			} else {
+				throw e;
+			}
+		}
 
 		return null;
 	}
@@ -181,44 +207,62 @@ export class GitHubRepository implements IGitHubRepository {
 	}
 
 	async getPullRequest(id: number): Promise<PullRequestModel> {
-		// try {
-		// 	const { bitbukit, remote } = await this.ensure();
-		// 	let { data } = await bitbukit.pullRequests.get({
-		// 		owner: remote.owner,
-		// 		repo: remote.repositoryName,
-		// 		number: id
-		// 	});
+		try {
+			const { bitbukit, remote } = await this.ensure();
+			let { data } = await bitbukit.pullrequests.get({
+				username: remote.owner,
+				repo_slug: remote.repositoryName,
+				pull_request_id: id
+			});
 
-		// 	if (!data.head.repo) {
-		// 		Logger.appendLine('GitHubRepository> The remote branch for this PR was already deleted.');
-		// 		return null;
-		// 	}
+			let commitsResult = await bitbukit.pullrequests.listCommits({
+				username: remote.owner,
+				repo_slug: remote.repositoryName,
+				pull_request_id: id.toString()
+			});
 
-		// 	return new PullRequestModel(this, remote, data);
-		// } catch (e) {
-		// 	Logger.appendLine(`GithubRepository> Unable to fetch PR: ${e}`);
-		// 	return null;
-		// }
+			const parentCommit: BitBucket.Schema.BaseCommit = commitsResult.data.values[commitsResult.data.values.length-1].parents[0];
+			let baseCommit: BitBucket.Schema.PullrequestEndpoint = {
+				branch: {
+					name: data.destination.branch.name
+				},
+				commit: {
+					hash: parentCommit.hash
+				},
+				repository: data.destination.repository
+			};
+			let pr: IPullRequest = data;
+			pr.base = baseCommit;
 
-		return null;
-	}
+			// TODO implement this check
+			// if (!data.head.repo) {
+			// 	Logger.appendLine('GitHubRepository> The remote branch for this PR was already deleted.');
+			// 	return null;
+			// }
 
-	private getPRFetchQuery(repo: string, user: string, type: PRType) {
-		let filter = '';
-		switch (type) {
-			case PRType.RequestReview:
-				filter = `review-requested:${user}`;
-				break;
-			case PRType.AssignedToMe:
-				filter = `assignee:${user}`;
-				break;
-			case PRType.Mine:
-				filter = `author:${user}`;
-				break;
-			default:
-				break;
+			return new PullRequestModel(this, remote, data);
+		} catch (e) {
+			Logger.appendLine(`GithubRepository> Unable to fetch PR: ${e}`);
+			return null;
 		}
-
-		return `is:open ${filter} type:pr repo:${repo}`;
 	}
+
+	// private getPRFetchQuery(repo: string, user: string, type: PRType) {
+	// 	let filter = '';
+	// 	switch (type) {
+	// 		case PRType.RequestReview:
+	// 			filter = `review-requested:${user}`;
+	// 			break;
+	// 		case PRType.AssignedToMe:
+	// 			filter = `assignee:${user}`;
+	// 			break;
+	// 		case PRType.Mine:
+	// 			filter = `author:${user}`;
+	// 			break;
+	// 		default:
+	// 			break;
+	// 	}
+
+	// 	return `is:open ${filter} type:pr repo:${repo}`;
+	// }
 }
